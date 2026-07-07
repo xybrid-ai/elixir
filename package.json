@@ -1,44 +1,11 @@
 {
-  "name": "@xybrid/elixir",
-  "version": "0.0.1",
-  "description": "Node/TypeScript OpenTelemetry SDK for Xybrid Elixir — ship your app's AI/LLM spans to Xybrid for behavior, cost, and eval analysis.",
+  "name": "xybrid-elixir-workspace",
+  "private": true,
   "type": "module",
-  "exports": {
-    ".": "./dist/mod.js"
-  },
-  "types": "./dist/mod.d.ts",
-  "files": [
-    "dist"
-  ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "clean": "rm -rf dist"
-  },
-  "keywords": [
-    "xybrid",
-    "elixir",
-    "opentelemetry",
-    "otel",
-    "llm",
-    "observability",
-    "gen-ai"
-  ],
-  "license": "MIT",
-  "peerDependencies": {
-    "@opentelemetry/api": ">=1.9.0"
-  },
-  "dependencies": {
-    "@opentelemetry/core": "^2.9.0",
-    "@opentelemetry/instrumentation": "^0.220.0",
-    "@opentelemetry/resources": "^2.9.0",
-    "@opentelemetry/sdk-node": "^0.220.0",
-    "@opentelemetry/sdk-trace-base": "^2.9.0"
-  },
-  "devDependencies": {
-    "@types/node": "^26.1.0",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.10"
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "build": "pnpm -r build",
+    "clean": "pnpm -r clean"
   }
 }
