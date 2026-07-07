@@ -1,0 +1,17 @@
+{
+  "name": "xybrid-elixir-example-vercel-ai-sdk",
+  "private": true,
+  "type": "module",
+  "description": "Send Vercel AI SDK telemetry to Xybrid Elixir.",
+  "scripts": {
+    "start": "tsx index.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^1",
+    "@xybrid/elixir": "file:../..",
+    "ai": "^4"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0"
+  }
+}
