@@ -1,0 +1,46 @@
+src/types.ts
+  s_e765f39b47ea89::t_0f3e5885cc6010 15-22
+README.md
+  s_e765f39b47ea89::t_a35911fa50b7b2 95-112,115-116,121,124-130
+  s_e765f39b47ea89::t_836ed1771d6f1e 3-9,17-19
+  s_e765f39b47ea89::t_6200386761eb83 37-40,42,46,55-61,64-67
+  s_e765f39b47ea89::t_933dac22dd775c 139
+  s_e765f39b47ea89::t_6f289f28525533 164-166
+  s_e765f39b47ea89::t_fcbf6428ce6e19 131
+package.json
+  s_e765f39b47ea89::t_76bfbf55b32da3 4
+src/exporter.test.ts
+  s_e765f39b47ea89::t_a102d669b31ffa 57-75
+src/exporter.ts
+  s_e765f39b47ea89::t_2dea8a38539e31 19,26
+  s_e765f39b47ea89::t_a568f62fd8da89 39
+src/start.ts
+  s_e765f39b47ea89::t_dfc64e1ed9141a 18-25
+  s_e765f39b47ea89::t_67163300ac6dd0 42-47
+mod.ts
+  s_e765f39b47ea89::t_e46158317d72d7 5-9
+src/span-to-event.test.ts
+  s_e765f39b47ea89::t_a9ee0457494634 6
+  s_e765f39b47ea89::t_9d07ba0dba01e9 39-50
+  s_e765f39b47ea89::t_8aa2d725ce6559 120-154
+src/span-to-event.ts
+  s_e765f39b47ea89::t_bbf0f52acd1233 7-49
+  s_e765f39b47ea89::t_9221a697e8fa23 123
+  s_e765f39b47ea89::t_4676883d15c9ff 87-94,96-100
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "ed590686f05bcb0c98c897e66a94db0e3764a087",
+  "prompts": {},
+  "sessions": {
+    "s_e765f39b47ea89": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19101751-5044-427d-b19a-90811fef3daa",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
