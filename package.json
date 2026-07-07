@@ -1,7 +1,7 @@
 {
   "name": "@xybrid/elixir",
   "version": "0.0.1",
-  "description": "Elixir SDK — ship your app's AI/LLM spans to Xybrid for behavior, cost, and eval analysis.",
+  "description": "Node/TypeScript OpenTelemetry SDK for Xybrid Elixir — ship your app's AI/LLM spans to Xybrid for behavior, cost, and eval analysis.",
   "type": "module",
   "exports": {
     ".": "./dist/mod.js"

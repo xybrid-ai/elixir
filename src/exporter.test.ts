@@ -54,6 +54,25 @@ describe("XybridExporter", () => {
     expect(body.events[0]).toMatchObject({ event_type: "otel.span.completed", provider: "openai" });
   });
 
+  it("strips content attributes unless captureContent is set", async () => {
+    const span = {
+      ...fakeSpan(),
+      attributes: { "gen_ai.system": "openai", "gen_ai.prompt.0.content": "secret" },
+    } as unknown as ReadableSpan;
+
+    for (const captureContent of [false, true]) {
+      const fetchImpl = mockFetch(200);
+      const exporter = new XybridExporter({
+        apiKey: "xyk_test",
+        captureContent,
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+      });
+      await exportOnce(exporter, [span]);
+      const body = JSON.parse(fetchImpl.mock.calls[0]![1]!.body as string);
+      expect("gen_ai.prompt.0.content" in body.events[0].attributes).toBe(captureContent);
+    }
+  });
+
   it("reports FAILED on a non-2xx ingest response", async () => {
     const exporter = new XybridExporter({
       apiKey: "xyk_test",

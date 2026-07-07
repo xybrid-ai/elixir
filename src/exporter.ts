@@ -16,12 +16,14 @@ export class XybridExporter implements SpanExporter {
   private readonly apiKey: string;
   private readonly endpoint: string;
   private readonly fetchImpl: typeof fetch;
+  private readonly captureContent: boolean;
   private shuttingDown = false;
 
   constructor(config: XybridElixirConfig) {
     if (!config.apiKey) throw new Error("XybridExporter: `apiKey` is required");
     this.apiKey = config.apiKey;
     this.endpoint = config.endpoint ?? DEFAULT_ENDPOINT;
+    this.captureContent = config.captureContent ?? false;
     const fetchImpl = config.fetchImpl ?? globalThis.fetch;
     if (!fetchImpl) {
       throw new Error("XybridExporter: no global `fetch`; pass `fetchImpl` (Node < 18)");
@@ -34,7 +36,7 @@ export class XybridExporter implements SpanExporter {
       resultCallback({ code: ExportResultCode.FAILED, error: new Error("exporter is shut down") });
       return;
     }
-    const events = spans.map(spanToEvent);
+    const events = spans.map((span) => spanToEvent(span, { captureContent: this.captureContent }));
     if (events.length === 0) {
       resultCallback({ code: ExportResultCode.SUCCESS });
       return;

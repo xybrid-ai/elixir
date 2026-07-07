@@ -3,7 +3,7 @@ import type { ReadableSpan } from "@opentelemetry/sdk-trace-base";
 import { describe, expect, it } from "vitest";
 
 import { isAISpan } from "./is-ai-span.ts";
-import { spanToEvent } from "./span-to-event.ts";
+import { isContentAttribute, spanToEvent } from "./span-to-event.ts";
 
 function fakeSpan(over: Partial<ReadableSpan> = {}): ReadableSpan {
   const base = {
@@ -33,6 +33,18 @@ describe("isAISpan", () => {
   it("rejects unrelated spans", () => {
     const plain = fakeSpan({ name: "GET /health", attributes: {} });
     expect(isAISpan(plain)).toBe(false);
+  });
+});
+
+describe("isContentAttribute", () => {
+  it("matches exact keys and dotted children, not lookalike prefixes", () => {
+    expect(isContentAttribute("gen_ai.prompt")).toBe(true);
+    expect(isContentAttribute("gen_ai.prompt.0.role")).toBe(true);
+    expect(isContentAttribute("traceloop.entity.output")).toBe(true);
+    expect(isContentAttribute("ai.toolCall.args")).toBe(true);
+    expect(isContentAttribute("gen_ai.system")).toBe(false);
+    expect(isContentAttribute("gen_ai.usage.input_tokens")).toBe(false);
+    expect(isContentAttribute("ai.response.finishReason")).toBe(false);
   });
 });
 
@@ -103,6 +115,41 @@ describe("spanToEvent", () => {
     expect(event.input_tokens).toBe(5);
     expect(event.output_tokens).toBe(7);
     expect(event.total_tokens).toBe(12);
+  });
+
+  it("strips content-bearing attributes by default", () => {
+    const event = spanToEvent(
+      fakeSpan({
+        attributes: {
+          "gen_ai.system": "anthropic",
+          "gen_ai.request.model": "claude-sonnet-5",
+          "gen_ai.prompt.0.content": "secret prompt",
+          "gen_ai.completion.0.content": "secret answer",
+          "traceloop.entity.input": '{"messages":[...]}',
+          "ai.prompt.messages": "[...]",
+          "ai.response.text": "hello",
+        },
+      }),
+    );
+    expect(Object.keys(event.attributes).sort()).toEqual([
+      "gen_ai.request.model",
+      "gen_ai.system",
+    ]);
+    expect(event.provider).toBe("anthropic");
+    expect(event.model).toBe("claude-sonnet-5");
+  });
+
+  it("keeps content attributes when captureContent is true", () => {
+    const event = spanToEvent(
+      fakeSpan({
+        attributes: {
+          "gen_ai.system": "anthropic",
+          "gen_ai.prompt.0.content": "secret prompt",
+        },
+      }),
+      { captureContent: true },
+    );
+    expect(event.attributes["gen_ai.prompt.0.content"]).toBe("secret prompt");
   });
 
   it("reads the OTel 2.x parentSpanContext shape", () => {

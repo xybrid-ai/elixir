@@ -12,6 +12,14 @@ export interface XybridElixirConfig {
    * Pass one explicitly on older runtimes or to inject a mock in tests.
    */
   fetchImpl?: typeof fetch;
+  /**
+   * Forward content-bearing span attributes (prompts, completions, tool
+   * input/output, messages) to Xybrid. Off by default so instrumentations that
+   * record content don't ship it unintentionally; metadata (provider, model,
+   * tokens, timing) is always sent.
+   * @default false
+   */
+  captureContent?: boolean;
 }
 
 /**

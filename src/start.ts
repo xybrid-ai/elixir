@@ -15,6 +15,14 @@ export interface StartXybridElixirOptions {
   endpoint?: string;
   /** OTel instrumentations to enable (e.g. `@traceloop/instrumentation-anthropic`). */
   instrumentations?: Instrumentation[];
+  /**
+   * Forward content-bearing span attributes (prompts, completions, tool
+   * input/output, messages) to Xybrid. Metadata is always sent.
+   * @default false
+   */
+  captureContent?: boolean;
+  /** Custom `fetch` implementation (Node < 18 or tests). */
+  fetchImpl?: typeof fetch;
 }
 
 /**
@@ -31,7 +39,12 @@ export function startXybridElixir(options: StartXybridElixirOptions): NodeSDK {
   const sdk = new NodeSDK({
     resource: resourceFromAttributes(attributes),
     spanProcessors: [
-      new XybridSpanProcessor({ apiKey: options.apiKey, endpoint: options.endpoint }),
+      new XybridSpanProcessor({
+        apiKey: options.apiKey,
+        endpoint: options.endpoint,
+        captureContent: options.captureContent,
+        fetchImpl: options.fetchImpl,
+      }),
     ],
     instrumentations: options.instrumentations ?? [],
   });
