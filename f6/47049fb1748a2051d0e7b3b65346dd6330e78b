@@ -1,0 +1,78 @@
+src/start.ts
+  s_cdd73949497a0a::t_a2de17eb34ef02 5
+  s_cdd73949497a0a::t_4dde87b52b517b 1-4,6-40
+examples/vercel-ai-sdk/README.md
+  s_cdd73949497a0a::t_4dde87b52b517b 1-63
+tsconfig.json
+  s_cdd73949497a0a::t_4dde87b52b517b 1-6,9-10,12-18,20
+  s_cdd73949497a0a::t_79b2e6656bda6b 7-8,11,19
+tsconfig.build.json
+  s_cdd73949497a0a::t_5f5412c6873dfe 1-4
+src/exporter.test.ts
+  s_cdd73949497a0a::t_4dde87b52b517b 1-5,7-69
+  s_cdd73949497a0a::t_a2de17eb34ef02 6
+src/nodesdk.integration.test.ts
+  s_cdd73949497a0a::t_4dde87b52b517b 1-4,6-90
+  s_cdd73949497a0a::t_a2de17eb34ef02 5
+examples/vercel-ai-sdk/.gitignore
+  s_cdd73949497a0a::t_4dde87b52b517b 1-3
+examples/vercel-ai-sdk/package.json
+  s_cdd73949497a0a::t_4dde87b52b517b 1-17
+README.md
+  s_cdd73949497a0a::t_d2d02990ad5532 11-12,15-16,20-21,23-29
+  s_cdd73949497a0a::t_bfaf978c3cfaf3 106-113
+  s_cdd73949497a0a::t_4dde87b52b517b 1-10,13-14,17-19,22,30-105,114-122
+src/vercel-ai-sdk.integration.test.ts
+  s_cdd73949497a0a::t_a2de17eb34ef02 5
+  s_cdd73949497a0a::t_4dde87b52b517b 1-4,6-71
+src/span-to-event.ts
+  s_cdd73949497a0a::t_4dde87b52b517b 1-4,6-79
+  s_cdd73949497a0a::t_a2de17eb34ef02 5
+jsr.json
+  s_cdd73949497a0a::t_26e6e10d5794b4 1-10
+package.json
+  s_cdd73949497a0a::t_b054aecb2720fb 3,7,9,28
+  s_cdd73949497a0a::t_4dde87b52b517b 1-2,4-6,8,10-27,29-44
+mod.ts
+  s_cdd73949497a0a::t_56c38bb6573716 1-6
+src/processor.test.ts
+  s_cdd73949497a0a::t_a2de17eb34ef02 5
+  s_cdd73949497a0a::t_4dde87b52b517b 1-4,6-64
+LICENSE
+  s_cdd73949497a0a::t_2f6fad35bc24b1 1-21
+src/types.ts
+  s_cdd73949497a0a::t_4dde87b52b517b 1-43
+.gitignore
+  s_cdd73949497a0a::t_4dde87b52b517b 1-3
+src/processor.ts
+  s_cdd73949497a0a::t_a2de17eb34ef02 9-11
+  s_cdd73949497a0a::t_4dde87b52b517b 1-8,12-43
+src/exporter.ts
+  s_cdd73949497a0a::t_4dde87b52b517b 1-3,6-73
+  s_cdd73949497a0a::t_a2de17eb34ef02 4-5
+examples/vercel-ai-sdk/index.ts
+  s_cdd73949497a0a::t_4dde87b52b517b 1-34
+src/is-ai-span.ts
+  s_cdd73949497a0a::t_4dde87b52b517b 1-18
+src/span-to-event.test.ts
+  s_cdd73949497a0a::t_4dde87b52b517b 1-4,7-114
+  s_cdd73949497a0a::t_a2de17eb34ef02 5-6
+pnpm-lock.yaml
+  s_cdd73949497a0a::t_34d6a978494a9b 1-1485
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "f647049fb1748a2051d0e7b3b65346dd6330e78b",
+  "prompts": {},
+  "sessions": {
+    "s_cdd73949497a0a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "49c6cd5e-312a-41f7-bd92-15935686855f",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
