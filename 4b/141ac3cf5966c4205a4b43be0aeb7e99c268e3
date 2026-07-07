@@ -1,0 +1,21 @@
+package.json
+  s_e765f39b47ea89::t_f0c670728e0898 3
+jsr.json
+  s_e765f39b47ea89::t_e9efc237b16fa9 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "4b141ac3cf5966c4205a4b43be0aeb7e99c268e3",
+  "prompts": {},
+  "sessions": {
+    "s_e765f39b47ea89": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19101751-5044-427d-b19a-90811fef3daa",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
