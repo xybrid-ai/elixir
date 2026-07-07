@@ -1,0 +1,85 @@
+packages/dev-listener/README.md
+  s_e765f39b47ea89::t_596fd8140470c8 1-75
+packages/dev-listener/jsr.json
+  s_e765f39b47ea89::t_a99013c1775abf 1-10
+README.md
+  s_e765f39b47ea89::t_8d2c2d76c844ac 1,3-4,6,8-9,15-17,20-22,25-26
+packages/dev-listener/src/types.ts
+  s_e765f39b47ea89::t_0a0efde97e1262 1-52
+packages/dev-listener/src/cli.ts
+  s_e765f39b47ea89::t_5269d9326a34ec 1-81
+packages/dev-listener/tsconfig.build.json
+  s_e765f39b47ea89::t_3833b65f390a6a 1-4
+packages/dev-listener/src/ring-buffer.ts
+  s_e765f39b47ea89::t_48d05c96332919 1-24
+packages/dev-listener/src/format.ts
+  s_e765f39b47ea89::t_33d2b314b8198d 1-41
+packages/dev-listener/src/normalize.test.ts
+  s_e765f39b47ea89::t_e053d2bc6f496b 1-177
+packages/dev-listener/src/server.test.ts
+  s_e765f39b47ea89::t_717febddff442b 1-131
+packages/dev-listener/src/normalize.ts
+  s_e765f39b47ea89::t_c161254214e6f5 1-180
+packages/dev-listener/src/ring-buffer.test.ts
+  s_e765f39b47ea89::t_68aa3dcf9fca97 1-23
+packages/elixir/README.md
+  s_e765f39b47ea89::t_812748f00360c2 25,33,41,53,55,60,69,78,86,90,105,111,146-167,171,175,178
+  s_e765f39b47ea89::t_e99d3c3cab4d8f 22-24
+  s_e765f39b47ea89::t_ebf96eeea0eec3 26-28,30-32
+  s_e765f39b47ea89::t_91a35236659863 34-36,38-40
+  s_e765f39b47ea89::t_5354557e34b304 42-44,50-52
+  s_e765f39b47ea89::t_dec29ba40cf217 54
+  s_e765f39b47ea89::t_c01a8c38836cc1 56-59
+  s_e765f39b47ea89::t_6fde6c68254ecb 61-63,66-68
+  s_e765f39b47ea89::t_d8323597e6c1b4 70-72,75-77
+  s_e765f39b47ea89::t_8663487fa9f529 79-81,83-85
+  s_e765f39b47ea89::t_45c7a822cfce92 87-89
+  s_e765f39b47ea89::t_2dbbe8e7a60f5a 91-93,102-104
+  s_e765f39b47ea89::t_ed066b208b9c45 106-110
+  s_e765f39b47ea89::t_4191e3436c0c8b 112-114,143-145
+  s_e765f39b47ea89::t_d7f436b3a87b3d 168-170
+  s_e765f39b47ea89::t_d90f6e6f0cd5e8 172-174
+  s_e765f39b47ea89::t_1aa1a61bbd2154 176-177
+  s_e765f39b47ea89::t_12c5ff9eb0e7c8 179-181
+  s_e765f39b47ea89::t_77e4a827c5ac29 1-21,29,37,45-49,64-65,73-74,82,94-101,115-142,182-187
+packages/dev-listener/tsconfig.json
+  s_e765f39b47ea89::t_c4f4ae8c1da2ff 1-20
+packages/elixir/LICENSE
+  s_e765f39b47ea89::t_e3d60fd796522c 1-21
+packages/dev-listener/mod.ts
+  s_e765f39b47ea89::t_d565758e01d9f3 1-15
+packages/dev-listener/package.json
+  s_e765f39b47ea89::t_576cfb6b211408 1-38
+packages/dev-listener/src/server.ts
+  s_e765f39b47ea89::t_9dcd9d7f363af3 1-154
+package.json
+  s_e765f39b47ea89::t_936b528e054a03 2-3,6-9
+packages/dev-listener/LICENSE
+  s_e765f39b47ea89::t_aecb185364909a 1-21
+packages/elixir/package.json
+  s_e765f39b47ea89::t_bdc85f42064e35 1-44
+packages/elixir/tsconfig.build.json
+  s_e765f39b47ea89::t_ebf59a54a7d9ba 1-4
+packages/elixir/tsconfig.json
+  s_e765f39b47ea89::t_1ba4e09fed3130 1-20
+pnpm-lock.yaml
+  s_e765f39b47ea89::t_c41af67291159e 9-23
+pnpm-workspace.yaml
+  s_e765f39b47ea89::t_1520c74c6db32a 1-2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "3f8072f4b221b7b9558827cf0b5cde7f89ec9e49",
+  "prompts": {},
+  "sessions": {
+    "s_e765f39b47ea89": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19101751-5044-427d-b19a-90811fef3daa",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
