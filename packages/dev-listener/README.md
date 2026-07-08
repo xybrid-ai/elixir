@@ -6,12 +6,18 @@ no Xybrid backend needed.
 
 ## Run
 
+From this repo:
+
 ```bash
-npx @xybrid/dev-listener
+pnpm --filter @xybrid/dev-listener start
 # Xybrid dev listener listening on http://localhost:4319/v1/spans
 ```
 
-(From this repo: `pnpm --filter @xybrid/dev-listener start`.)
+(`npx @xybrid/dev-listener` will work once the package is published to npm —
+a JSR-only publish does not expose the CLI binary.)
+
+The listener binds to `127.0.0.1` only; pass `--host 0.0.0.0` to accept spans
+from other machines.
 
 ## Point the SDK at it
 
@@ -43,6 +49,7 @@ Each AI call your app makes prints as:
 | Flag | Default | Notes |
 |---|---|---|
 | `--port <n>` | `4319` | HTTP port |
+| `--host <addr>` | `127.0.0.1` | interface to bind; loopback only by default |
 | `--out <file>` | — | append one normalized event per line (NDJSON); parent dirs are created |
 | `--capture-content` | off | keep prompt/response/tool content; by default content-bearing attribute values become `"[redacted]"` (keys are kept — token/usage counts are never redacted) |
 | `--json` | off | print normalized JSON lines instead of pretty summaries |

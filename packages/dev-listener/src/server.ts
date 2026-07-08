@@ -10,6 +10,13 @@ import type { NormalizedSpanEvent, XybridOTelSpanEvent } from "./types.ts";
 export interface DevListenerOptions {
   /** @default 4319 */
   port?: number;
+  /**
+   * Interface to bind. Loopback by default — this tool is local-only and
+   * `/events` can expose content; pass `"0.0.0.0"` explicitly to accept spans
+   * from other machines.
+   * @default "127.0.0.1"
+   */
+  host?: string;
   /** Keep content-bearing attribute values instead of `"[redacted]"`. @default false */
   captureContent?: boolean;
   /** Append one normalized event per line to this NDJSON file. */
@@ -133,18 +140,20 @@ export async function startDevListener(options: DevListenerOptions = {}): Promis
     respond(404, { error: "not found" });
   });
 
+  const host = options.host ?? "127.0.0.1";
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
-    server.listen(options.port ?? 4319, () => resolve());
+    server.listen(options.port ?? 4319, host, () => resolve());
   });
 
   const address = server.address();
   const port = typeof address === "object" && address !== null ? address.port : (options.port ?? 4319);
+  const displayHost = ["127.0.0.1", "::1", "0.0.0.0", "::"].includes(host) ? "localhost" : host;
 
   return {
     server,
     port,
-    url: `http://localhost:${port}/v1/spans`,
+    url: `http://${displayHost}:${port}/v1/spans`,
     events: () => buffer.toArray(),
     close: () =>
       new Promise<void>((resolve, reject) =>

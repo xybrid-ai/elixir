@@ -10,6 +10,7 @@ Usage:
 
 Options:
   --port <n>          HTTP port (default: 4319)
+  --host <addr>       interface to bind (default: 127.0.0.1, loopback only)
   --out <file>        append normalized events to an NDJSON file
   --capture-content   keep prompt/response content instead of "[redacted]"
   --json              print normalized JSON lines instead of pretty summaries
@@ -23,6 +24,7 @@ Endpoints:
 export async function main(argv: string[] = process.argv.slice(2)): Promise<void> {
   let values: {
     port?: string;
+    host?: string;
     out?: string;
     "capture-content"?: boolean;
     json?: boolean;
@@ -33,6 +35,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
       args: argv,
       options: {
         port: { type: "string" },
+        host: { type: "string" },
         out: { type: "string" },
         "capture-content": { type: "boolean", default: false },
         json: { type: "boolean", default: false },
@@ -60,6 +63,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
 
   const listener = await startDevListener({
     port,
+    host: values.host,
     out: values.out,
     captureContent: values["capture-content"],
     json: values.json,

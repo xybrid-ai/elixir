@@ -102,13 +102,16 @@ const CONTENT_KEY_SUBSTRINGS = [
   "message",
   "response",
   "embedding",
+  "instructions",
   "tool.arguments",
   "tool.result",
+  "tool.call",
   "traceloop.entity.input",
   "traceloop.entity.output",
   "ai.prompt",
   "ai.response",
   "ai.toolcall",
+  "ai.result",
 ];
 
 function isContentKey(key: string): boolean {

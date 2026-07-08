@@ -123,6 +123,12 @@ describe("dev listener HTTP endpoints", () => {
     }
   });
 
+  it("binds to loopback by default", async () => {
+    listener = await startDevListener({ port: 0, ...silent });
+    const address = listener.server.address();
+    expect(typeof address === "object" && address !== null ? address.address : "").toBe("127.0.0.1");
+  });
+
   it("404s unknown routes", async () => {
     listener = await startDevListener({ port: 0, ...silent });
     const res = await fetch(`http://localhost:${listener.port}/nope`);

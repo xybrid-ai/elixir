@@ -146,11 +146,13 @@ Options accepted by `XybridSpanProcessor` / `XybridExporter` (`XybridElixirConfi
 ## Local debugging
 
 Test span collection without the real backend using
-[`@xybrid/dev-listener`](../dev-listener/). Run:
+[`@xybrid/dev-listener`](../dev-listener/). From this repo:
 
 ```bash
-npx @xybrid/dev-listener
+pnpm --filter @xybrid/dev-listener start
 ```
+
+(Or `npx @xybrid/dev-listener` once it's published to npm.)
 
 Then point the SDK at it:
 

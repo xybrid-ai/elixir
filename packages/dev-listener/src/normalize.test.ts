@@ -120,6 +120,27 @@ describe("sanitizeAttributes", () => {
     expect(clean["gen_ai.system"]).toBe("anthropic");
   });
 
+  it("redacts every key the SDK itself classifies as content-bearing", () => {
+    const sdkContentKeys = {
+      "gen_ai.system_instructions": "x",
+      "gen_ai.tool.call.arguments": "x",
+      "gen_ai.tool.call.result": "x",
+      "gen_ai.input.messages": "x",
+      "gen_ai.output.messages": "x",
+      "llm.prompts": "x",
+      "llm.completions": "x",
+      "traceloop.entity.input": "x",
+      "ai.toolCall.args": "x",
+      "ai.result.text": "x",
+      "ai.result.object": "x",
+      "ai.result.toolCalls": "x",
+    };
+    const clean = sanitizeAttributes(sdkContentKeys, { captureContent: false });
+    for (const key of Object.keys(sdkContentKeys)) {
+      expect(clean[key], key).toBe("[redacted]");
+    }
+  });
+
   it("never redacts token/usage counts despite input/output in the key", () => {
     const clean = sanitizeAttributes(attrs, { captureContent: false });
     expect(clean["gen_ai.usage.input_tokens"]).toBe(1200);
