@@ -1,0 +1,37 @@
+packages/dev-listener/src/cli.ts
+  s_e765f39b47ea89::t_aecc6d4cee5ac4 27,38
+  s_e765f39b47ea89::t_b0ed55800a7890 66
+  s_e765f39b47ea89::t_42efda4c955ab0 13
+packages/dev-listener/src/normalize.ts
+  s_e765f39b47ea89::t_f6168782a00679 114
+  s_e765f39b47ea89::t_b946a84d823a18 105,108
+packages/dev-listener/README.md
+  s_e765f39b47ea89::t_3c6b7281b2cfa7 9-10,12,16-20
+  s_e765f39b47ea89::t_de51bbb41e1075 52
+packages/elixir/README.md
+  s_e765f39b47ea89::t_d0f25f2b24c347 149,152,155
+  s_e765f39b47ea89::t_9c2c4386dc714e 156
+packages/dev-listener/src/normalize.test.ts
+  s_e765f39b47ea89::t_f2c818286c64f8 123-143
+packages/dev-listener/src/server.ts
+  s_e765f39b47ea89::t_9c317fbcb70690 13-19
+  s_e765f39b47ea89::t_24d704e1f746c2 143,146,151,156
+packages/dev-listener/src/server.test.ts
+  s_e765f39b47ea89::t_123b4a7c593ab1 126-131
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "b5a661e31da0e7454c8416349f040cce0ca76654",
+  "prompts": {},
+  "sessions": {
+    "s_e765f39b47ea89": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19101751-5044-427d-b19a-90811fef3daa",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
