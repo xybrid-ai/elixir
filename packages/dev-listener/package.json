@@ -1,0 +1,38 @@
+{
+  "name": "@xybrid/dev-listener",
+  "version": "0.0.1",
+  "description": "Local span listener for testing @xybrid/elixir — receives AI/LLM spans on http://localhost:4319/v1/spans and pretty-prints them.",
+  "type": "module",
+  "exports": {
+    ".": "./dist/mod.js"
+  },
+  "types": "./dist/mod.d.ts",
+  "bin": {
+    "xybrid-dev-listener": "./dist/src/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "start": "pnpm build && node dist/src/cli.js",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "xybrid",
+    "elixir",
+    "opentelemetry",
+    "otel",
+    "llm",
+    "observability",
+    "dev-tools"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^26.1.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
+  }
+}

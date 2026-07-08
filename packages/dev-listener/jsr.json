@@ -1,0 +1,10 @@
+{
+  "name": "@xybrid/dev-listener",
+  "version": "0.0.1",
+  "license": "MIT",
+  "exports": "./mod.ts",
+  "publish": {
+    "include": ["mod.ts", "src/**/*.ts", "README.md", "LICENSE"],
+    "exclude": ["src/**/*.test.ts"]
+  }
+}
