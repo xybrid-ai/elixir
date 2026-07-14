@@ -1,0 +1,30 @@
+packages/elixir/src/types.ts
+  s_97c7071a00eee3::t_f06babdd15a5bc 25-125
+packages/elixir/src/gateway.ts
+  s_97c7071a00eee3::t_a6adc892a0057e 162
+  s_97c7071a00eee3::t_bf08df652f526d 1-161,163-170
+packages/elixir/src/brewers.ts
+  s_97c7071a00eee3::t_a1a24f7a863a47 1-72
+packages/elixir/mod.ts
+  s_97c7071a00eee3::t_ab1ba74b4b5c23 1,11-27
+packages/elixir/src/init.ts
+  s_97c7071a00eee3::t_cde3a8d14404ca 1-90
+packages/elixir/src/brew.spike.test.ts
+  s_97c7071a00eee3::t_eaf92b5e19e5f3 1-82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "53bc835a9d737f0982fe4681e1e9a2e9b2564b12",
+  "prompts": {},
+  "sessions": {
+    "s_97c7071a00eee3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0bce3a3e-df4e-4632-a555-e902c13f80ee",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
