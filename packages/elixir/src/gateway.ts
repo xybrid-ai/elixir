@@ -1,4 +1,4 @@
-import { SpanStatusCode, trace, type Tracer } from "@opentelemetry/api";
+import { isSpanContextValid, SpanStatusCode, trace, type Span, type Tracer } from "@opentelemetry/api";
 
 import type { CircuitPolicy, FallbackPolicy, ResolvedFallbackPolicy } from "./types.ts";
 
@@ -87,7 +87,7 @@ export function createFallbackFetch(opts: FallbackFetchOptions): typeof fetch {
             const res = await fetchWithTimeout(
               opts.fetchImpl,
               url,
-              withGatewayHeaders(init, opts),
+              withGatewayHeaders(init, opts, span),
               opts.policy.timeoutMs,
             );
             if (!opts.policy.retryStatuses.includes(res.status)) {
@@ -131,11 +131,38 @@ function finish(
 }
 
 /** Clone `init` and add the gateway routing headers for the proxied attempt. */
-function withGatewayHeaders(init: RequestInit | undefined, opts: FallbackFetchOptions): RequestInit {
+function withGatewayHeaders(
+  init: RequestInit | undefined,
+  opts: FallbackFetchOptions,
+  span: Span,
+): RequestInit {
   const headers = new Headers(init?.headers);
   headers.set("x-xybrid-key", opts.apiKey);
   headers.set("x-xybrid-upstream", opts.upstreamPrefix);
+  // Mode C join key: the gateway parses `traceparent` and lands the caller's
+  // span id on its metering event, so the exported correlation span and the
+  // gateway's ai_generations row share (trace_id, span_id). Without this
+  // header a brewed call produces two rows with no join key at all. Respect a
+  // header the app's own instrumentation already set.
+  if (!headers.has("traceparent")) {
+    const traceparent = traceparentFrom(span);
+    if (traceparent) headers.set("traceparent", traceparent);
+  }
   return { ...init, headers };
+}
+
+/**
+ * Serialize a span's context as a W3C `traceparent` (`00-<trace>-<span>-<flags>`).
+ * Returns `undefined` when no real tracer provider is registered (the no-op
+ * tracer yields an all-zero, invalid context) — in that case no span is
+ * exported either, so there is nothing to join; the gateway mints its own
+ * trace identity instead.
+ */
+export function traceparentFrom(span: Span): string | undefined {
+  const ctx = span.spanContext();
+  if (!isSpanContextValid(ctx)) return undefined;
+  const flags = (ctx.traceFlags & 0xff).toString(16).padStart(2, "0");
+  return `00-${ctx.traceId}-${ctx.spanId}-${flags}`;
 }
 
 /**
