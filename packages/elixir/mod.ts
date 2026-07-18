@@ -10,7 +10,7 @@ export {
 } from "./src/span-to-event.ts";
 
 // Gateway routing + brewers (the `brew` extension point).
-export { createFallbackFetch, resolveFallback } from "./src/gateway.ts";
+export { createFallbackFetch, resolveFallback, traceparentFrom } from "./src/gateway.ts";
 export { registerBrewer, findBrewer, openaiBrewer } from "./src/brewers.ts";
 
 export type {
