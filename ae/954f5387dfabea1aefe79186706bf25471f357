@@ -1,0 +1,35 @@
+packages/elixir/mod.ts
+  s_fb90dd371eca7c::t_6bb37dcb1f62f1 13
+packages/elixir/src/gateway.ts
+  s_fb90dd371eca7c::t_d79ab2285eeb14 1
+  s_fb90dd371eca7c::t_e5d10294177632 90
+  s_fb90dd371eca7c::t_6ff7865163b5ba 134-138,142-150,154-165
+  s_b4d04e8868b8a7::t_4eff24497a4e48 166-167
+packages/elixir/src/brew.spike.test.ts
+  s_fb90dd371eca7c::t_e3089ac1fba4c0 1,4
+  s_fb90dd371eca7c::t_2a08728e906572 85-184
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "ae954f5387dfabea1aefe79186706bf25471f357",
+  "prompts": {},
+  "sessions": {
+    "s_b4d04e8868b8a7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "695b9f3a-2768-45bf-ae65-fe908023ea3f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    },
+    "s_fb90dd371eca7c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f722719b-c1a3-46cf-b2a8-d813620e3038",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
