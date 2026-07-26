@@ -1,0 +1,33 @@
+packages/elixir/src/types.ts
+  s_e539564cdb4adc::t_7caac227b5c5b5 52-54
+  s_e539564cdb4adc::t_d3fdfac7fdfe96 44-48
+packages/elixir/src/gateway-fallback.test.ts
+  s_e539564cdb4adc::t_7caac227b5c5b5 108,115-119,121
+  s_e539564cdb4adc::t_9e90051dacab0b 71-72,145,148,150
+  s_e539564cdb4adc::t_d3fdfac7fdfe96 49-50,60-64,66-70,73-84,159-162,196,200
+  s_e539564cdb4adc::t_8772382866a2e4 112-114
+  s_e539564cdb4adc::t_43e8e4c6472ac8 109-111
+packages/elixir/src/brew.spike.test.ts
+  s_e539564cdb4adc::t_d3fdfac7fdfe96 9-15,32-36,158-178,191-195
+packages/elixir/src/gateway.ts
+  s_e539564cdb4adc::t_7caac227b5c5b5 72,76-78
+  s_e539564cdb4adc::t_d3fdfac7fdfe96 17,68-69,73-75,79-81
+packages/elixir/src/init.ts
+  s_e539564cdb4adc::t_d3fdfac7fdfe96 66-80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "7d159fc4e85135f4c660da956b5de9024839907f",
+  "prompts": {},
+  "sessions": {
+    "s_e539564cdb4adc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f9e40-2526-7252-adbd-521ae1d8d022",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
