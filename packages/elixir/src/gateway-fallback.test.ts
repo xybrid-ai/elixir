@@ -46,11 +46,8 @@ function fallbackFetch(
 }
 
 describe("fallback matrix — which gateway statuses fall back", () => {
-  // Regression: the default used to be [502, 503, 504], so a gateway 500 (or a
-  // Cloudflare 524) was handed straight to the caller and the provider was
-  // never tried — the safety net failed exactly when it was needed.
-  it.each([500, 501, 502, 503, 504, 507, 520, 524, 530, 408, 429])(
-    "falls back to the provider on gateway %i",
+  it.each([520, 524, 530])(
+    "falls back to the provider on an unmarked edge-proxy %i",
     async (status) => {
       const { fetchImpl, calls } = transport([status]);
       const res = await fallbackFetch(fetchImpl)(`${GATEWAY}${PATH}`, { method: "POST" });
@@ -60,15 +57,31 @@ describe("fallback matrix — which gateway statuses fall back", () => {
     },
   );
 
-  // The other half of the contract: a provider error proxied through the gateway
-  // is a real answer. Replaying it upstream would just repeat it, at double cost.
-  it.each([400, 404, 409, 422])("passes a provider %i straight through", async (status) => {
-    const { fetchImpl, calls } = transport([status]);
-    const res = await fallbackFetch(fetchImpl)(`${GATEWAY}${PATH}`, { method: "POST" });
+  it.each([400, 404, 408, 409, 422, 429, 500, 501, 502, 503, 504, 507])(
+    "passes an unmarked provider %i straight through",
+    async (status) => {
+      const { fetchImpl, calls } = transport([status]);
+      const res = await fallbackFetch(fetchImpl)(`${GATEWAY}${PATH}`, { method: "POST" });
 
-    expect(res.status).toBe(status);
-    expect(calls).toEqual([`${GATEWAY}${PATH}`]);
-  });
+      expect(res.status).toBe(status);
+      expect(calls).toEqual([`${GATEWAY}${PATH}`]);
+    },
+  );
+
+  // The marker is the positive signal that an otherwise ambiguous status came
+  // from the gateway rather than being proxied from the provider.
+  it.each([400, 404, 408, 409, 422, 429, 500, 503])(
+    "falls back on a marked gateway-generated %i",
+    async (status) => {
+      const { fetchImpl, calls } = transport([status], {
+        [XYBRID_ERROR_HEADER]: "mock_gateway_error",
+      });
+      const res = await fallbackFetch(fetchImpl)(`${GATEWAY}${PATH}`, { method: "POST" });
+
+      expect(res.status).toBe(200);
+      expect(calls).toEqual([`${GATEWAY}${PATH}`, `${UPSTREAM}${PATH}`]);
+    },
+  );
 
   it("passes an unmarked 401 through — that is the caller's provider key, not ours", async () => {
     const { fetchImpl, calls } = transport([401]);
@@ -92,13 +105,20 @@ describe("fallback matrix — which gateway statuses fall back", () => {
     expect(warnings[0]).toMatch(/rejected this API key/);
   });
 
-  it("honours retryServerErrors: false", async () => {
-    const { fetchImpl, calls } = transport([500]);
-    const res = await fallbackFetch(fetchImpl, { retryServerErrors: false })(`${GATEWAY}${PATH}`, {
-      method: "POST",
-    });
+  it.each([
+    { status: 500, marked: true },
+    { status: 524, marked: false },
+  ])("honours retryServerErrors: false for $status", async ({ status, marked }) => {
+    const headers: Record<string, string> = marked
+      ? { [XYBRID_ERROR_HEADER]: "mock_gateway_error" }
+      : {};
+    const { fetchImpl, calls } = transport([status], headers);
+    const res = await fallbackFetch(fetchImpl, { retryServerErrors: false })(
+      `${GATEWAY}${PATH}`,
+      { method: "POST" },
+    );
 
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(status);
     expect(calls).toEqual([`${GATEWAY}${PATH}`]);
   });
 
@@ -122,12 +142,12 @@ describe("circuit breaker accounting", () => {
   // alternating pass/fail could never trip the breaker no matter how long it
   // stayed broken.
   it("trips on N failures in the window even when successes interleave", async () => {
-    const { fetchImpl, calls } = transport([503, 200, 503, 200]);
+    const { fetchImpl, calls } = transport([524, 200, 524, 200]);
     const xfetch = fallbackFetch(fetchImpl, policy);
 
-    await xfetch(`${GATEWAY}${PATH}`, { method: "POST" }); // 503 → failure 1
+    await xfetch(`${GATEWAY}${PATH}`, { method: "POST" }); // 524 → failure 1
     await xfetch(`${GATEWAY}${PATH}`, { method: "POST" }); // 200 → must not reset
-    await xfetch(`${GATEWAY}${PATH}`, { method: "POST" }); // 503 → failure 2, trips
+    await xfetch(`${GATEWAY}${PATH}`, { method: "POST" }); // 524 → failure 2, trips
     calls.length = 0;
     await xfetch(`${GATEWAY}${PATH}`, { method: "POST" });
 
@@ -136,8 +156,10 @@ describe("circuit breaker accounting", () => {
 
   // Regression: a non-retryable status used to be recorded as a *success*, so a
   // gateway 500ing on every single request read as perfectly healthy.
-  it("counts a gateway 500 as a failure", async () => {
-    const { fetchImpl, calls } = transport([500]);
+  it("counts a marked gateway 500 as a failure", async () => {
+    const { fetchImpl, calls } = transport([500], {
+      [XYBRID_ERROR_HEADER]: "mock_gateway_error",
+    });
     const xfetch = fallbackFetch(fetchImpl, policy);
 
     await xfetch(`${GATEWAY}${PATH}`, { method: "POST" });
@@ -171,11 +193,11 @@ describe("fallback reason on the correlation span", () => {
   }
 
   it("records `status` when the gateway returns a retryable status", async () => {
-    expect(await reasonFor([503])).toBe("status");
+    expect(await reasonFor([524])).toBe("status");
   });
 
   it("records `circuit_open` once the breaker has tripped", async () => {
-    expect(await reasonFor([503], 2)).toBe("circuit_open");
+    expect(await reasonFor([524], 2)).toBe("circuit_open");
   });
 
   it("records no reason on the happy path", async () => {

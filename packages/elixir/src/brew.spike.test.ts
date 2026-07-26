@@ -6,8 +6,13 @@ import {
 } from "@opentelemetry/sdk-trace-base";
 import { describe, expect, it, vi } from "vitest";
 
-import { isBrewed } from "./brewers.ts";
-import { createFallbackFetch, resolveFallback, traceparentFrom } from "./gateway.ts";
+import { isBrewed, openaiBrewer } from "./brewers.ts";
+import {
+  createFallbackFetch,
+  resolveFallback,
+  traceparentFrom,
+  XYBRID_ERROR_HEADER,
+} from "./gateway.ts";
 import { init } from "./init.ts";
 
 /** Minimal structural stand-in for an OpenAI Node SDK client. */
@@ -24,8 +29,11 @@ function mockTransport(gatewayStatus: number) {
   const calls: string[] = [];
   const fetchImpl = vi.fn(async (url: string) => {
     calls.push(url);
-    const status = url.includes("gateway.xybrid.ai") ? gatewayStatus : 200;
-    return new Response(JSON.stringify({ ok: status === 200 }), { status });
+    const isGateway = url.includes("gateway.xybrid.ai");
+    const status = isGateway ? gatewayStatus : 200;
+    const headers =
+      isGateway && status !== 200 ? { [XYBRID_ERROR_HEADER]: "mock_gateway_error" } : undefined;
+    return new Response(JSON.stringify({ ok: status === 200 }), { status, headers });
   });
   return { fetchImpl: fetchImpl as unknown as typeof fetch, calls };
 }
@@ -147,6 +155,27 @@ describe("brew — idempotency", () => {
     ]);
   });
 
+  it("can enable instrumentation after an initial route-only brew", () => {
+    const originalInstrument = openaiBrewer.instrument;
+    const instrument = vi.fn();
+    openaiBrewer.instrument = instrument;
+    try {
+      const { fetchImpl } = mockTransport(200);
+      const sdk = init({ apiKey: "xyb_test", gateway: "https://gateway.xybrid.ai" });
+      const client = fakeOpenAI(fetchImpl);
+
+      sdk.brew(client, { instrument: false });
+      const routedFetch = client.fetch;
+      sdk.brew(client);
+
+      expect(client.fetch).toBe(routedFetch);
+      expect(instrument).toHaveBeenCalledOnce();
+      expect(instrument).toHaveBeenCalledWith(client);
+    } finally {
+      openaiBrewer.instrument = originalInstrument;
+    }
+  });
+
   it("does not mark a client that no brewer could route", () => {
     expect(isBrewed({ notAClient: true })).toBe(false);
     expect(isBrewed(null)).toBe(false);
@@ -159,8 +188,11 @@ describe("brew — traceparent injection (Mode C join key)", () => {
     const attempts: Array<{ url: string; headers: Headers }> = [];
     const fetchImpl = vi.fn(async (url: string, reqInit?: RequestInit) => {
       attempts.push({ url, headers: new Headers(reqInit?.headers) });
-      const status = url.includes("gateway.xybrid.ai") ? gatewayStatus : 200;
-      return new Response("{}", { status });
+      const isGateway = url.includes("gateway.xybrid.ai");
+      const status = isGateway ? gatewayStatus : 200;
+      const headers =
+        isGateway && status !== 200 ? { [XYBRID_ERROR_HEADER]: "mock_gateway_error" } : undefined;
+      return new Response("{}", { status, headers });
     });
     return { fetchImpl: fetchImpl as unknown as typeof fetch, attempts };
   }

@@ -14,7 +14,7 @@ export const XYBRID_ERROR_HEADER = "x-xybrid-error";
 export function resolveFallback(policy?: FallbackPolicy): ResolvedFallbackPolicy {
   return {
     timeoutMs: policy?.timeoutMs ?? 10_000,
-    retryStatuses: policy?.retryStatuses ?? [408, 429],
+    retryStatuses: policy?.retryStatuses ?? [],
     retryServerErrors: policy?.retryServerErrors ?? true,
     circuit: {
       failureThreshold: policy?.circuit?.failureThreshold ?? 5,
@@ -65,14 +65,20 @@ function gatewayFailure(
   res: Response,
   policy: ResolvedFallbackPolicy,
 ): "status" | "gateway_auth" | undefined {
-  if (policy.retryStatuses.includes(res.status)) return "status";
-  if (policy.retryServerErrors && res.status >= 500) return "status";
-  // 401/403 is ambiguous: either the gateway rejected *our* Xybrid key, or it
-  // proxied back the provider rejecting the caller's key. Only the former is
-  // worth retrying direct, and only the gateway can tell us which it is.
-  if ((res.status === 401 || res.status === 403) && res.headers.has(XYBRID_ERROR_HEADER)) {
+  const generatedByGateway = res.headers.has(XYBRID_ERROR_HEADER);
+  if ((res.status === 401 || res.status === 403) && generatedByGateway) {
     return "gateway_auth";
   }
+  if (policy.retryStatuses.includes(res.status)) return "status";
+  // A marked response came from the gateway itself, so replaying against the
+  // provider is safe. Unmarked standard statuses may be the provider's proxied
+  // answer and must pass through to avoid duplicating a non-idempotent request.
+  if (generatedByGateway) {
+    return res.status < 500 || policy.retryServerErrors ? "status" : undefined;
+  }
+  // Cloudflare's non-standard 520–530 range identifies an edge-generated
+  // failure even when the edge could not attach the gateway marker.
+  if (policy.retryServerErrors && res.status >= 520 && res.status <= 530) return "status";
   return undefined;
 }
 

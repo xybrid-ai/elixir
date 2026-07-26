@@ -63,19 +63,21 @@ export function init(options: ElixirInitOptions): Elixir {
         throw new Error(`elixir.brew: no brewer registered for ${name}`);
       }
 
-      // Idempotent: brewing the same client twice (module reload, a `brew` call
-      // on a per-request path) must not stack transports. First brew wins.
-      if (isBrewed(client)) return client;
-
-      if (brewer.supports(client)) {
-        brewer.route(client, ctx);
-        if (typeof client === "object" && client !== null) markBrewed(client);
-      } else {
-        const message =
-          `elixir.brew: ${brewer.name} client version is not supported for routing; ` +
-          `leaving it on its original base URL (set { strict: true } to throw instead)`;
-        if (ctx.strict) throw new Error(message);
-        console.warn(message);
+      // Routing is idempotent: brewing the same client twice (module reload, a
+      // `brew` call on a per-request path) must not stack transports. Keep
+      // instrumentation eligible so a later call can enable it after an
+      // initial `{ instrument: false }` route-only brew.
+      if (!isBrewed(client)) {
+        if (brewer.supports(client)) {
+          brewer.route(client, ctx);
+          if (typeof client === "object" && client !== null) markBrewed(client);
+        } else {
+          const message =
+            `elixir.brew: ${brewer.name} client version is not supported for routing; ` +
+            `leaving it on its original base URL (set { strict: true } to throw instead)`;
+          if (ctx.strict) throw new Error(message);
+          console.warn(message);
+        }
       }
 
       if (opts?.instrument !== false) brewer.instrument?.(client);
