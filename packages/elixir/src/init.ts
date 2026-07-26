@@ -2,7 +2,7 @@ import type { Instrumentation } from "@opentelemetry/instrumentation";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 
-import { findBrewer } from "./brewers.ts";
+import { findBrewer, isBrewed, markBrewed } from "./brewers.ts";
 import { resolveFallback } from "./gateway.ts";
 import { XybridSpanProcessor } from "./processor.ts";
 import type { BrewContext, BrewOptions, Elixir, ElixirInitOptions } from "./types.ts";
@@ -63,8 +63,13 @@ export function init(options: ElixirInitOptions): Elixir {
         throw new Error(`elixir.brew: no brewer registered for ${name}`);
       }
 
+      // Idempotent: brewing the same client twice (module reload, a `brew` call
+      // on a per-request path) must not stack transports. First brew wins.
+      if (isBrewed(client)) return client;
+
       if (brewer.supports(client)) {
         brewer.route(client, ctx);
+        if (typeof client === "object" && client !== null) markBrewed(client);
       } else {
         const message =
           `elixir.brew: ${brewer.name} client version is not supported for routing; ` +

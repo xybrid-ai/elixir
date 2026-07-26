@@ -2,11 +2,20 @@ import { isSpanContextValid, SpanStatusCode, trace, type Span, type Tracer } fro
 
 import type { CircuitPolicy, FallbackPolicy, ResolvedFallbackPolicy } from "./types.ts";
 
+/**
+ * Response header the gateway sets on errors it generated itself (a rejected
+ * Xybrid key, an unknown route) as opposed to errors it proxied back from the
+ * provider. Lets a 401 caused by *our* misconfiguration fall back, while a 401
+ * caused by the caller's provider key passes straight through.
+ */
+export const XYBRID_ERROR_HEADER = "x-xybrid-error";
+
 /** Fill in defaults for a partial {@link FallbackPolicy}. */
 export function resolveFallback(policy?: FallbackPolicy): ResolvedFallbackPolicy {
   return {
     timeoutMs: policy?.timeoutMs ?? 10_000,
-    retryStatuses: policy?.retryStatuses ?? [502, 503, 504],
+    retryStatuses: policy?.retryStatuses ?? [408, 429],
+    retryServerErrors: policy?.retryServerErrors ?? true,
     circuit: {
       failureThreshold: policy?.circuit?.failureThreshold ?? 5,
       windowMs: policy?.circuit?.windowMs ?? 30_000,
@@ -19,6 +28,10 @@ export function resolveFallback(policy?: FallbackPolicy): ResolvedFallbackPolicy
  * Rolling-window circuit breaker. Once `failureThreshold` failures occur within
  * `windowMs`, it opens for `cooldownMs` so a struggling gateway isn't re-probed
  * on every single call.
+ *
+ * Successes are deliberately *not* recorded: the contract is "N failures in any
+ * `windowMs` window", so interleaved successes must not reset the count. A
+ * gateway alternating pass/fail is unhealthy and should still trip.
  */
 class CircuitBreaker {
   private failures: number[] = [];
@@ -30,10 +43,6 @@ class CircuitBreaker {
     return now < this.openUntil;
   }
 
-  recordSuccess(): void {
-    this.failures = [];
-  }
-
   recordFailure(now: number): void {
     this.failures = this.failures.filter((t) => now - t <= this.policy.windowMs);
     this.failures.push(now);
@@ -42,6 +51,29 @@ class CircuitBreaker {
       this.failures = [];
     }
   }
+}
+
+/** Why a call bypassed or abandoned the gateway. Recorded on the span. */
+type FallbackReason = "status" | "gateway_auth" | "timeout" | "transport" | "circuit_open";
+
+/**
+ * Whether a gateway response means "the gateway is struggling" (fall back) or
+ * "the provider answered" (pass through). Returns the reason, or `undefined`
+ * when the response should be handed to the caller as-is.
+ */
+function gatewayFailure(
+  res: Response,
+  policy: ResolvedFallbackPolicy,
+): "status" | "gateway_auth" | undefined {
+  if (policy.retryStatuses.includes(res.status)) return "status";
+  if (policy.retryServerErrors && res.status >= 500) return "status";
+  // 401/403 is ambiguous: either the gateway rejected *our* Xybrid key, or it
+  // proxied back the provider rejecting the caller's key. Only the former is
+  // worth retrying direct, and only the gateway can tell us which it is.
+  if ((res.status === 401 || res.status === 403) && res.headers.has(XYBRID_ERROR_HEADER)) {
+    return "gateway_auth";
+  }
+  return undefined;
 }
 
 export interface FallbackFetchOptions {
@@ -57,7 +89,11 @@ export interface FallbackFetchOptions {
   apiKey: string;
   policy: ResolvedFallbackPolicy;
   tracer?: Tracer;
+  /** Sink for operator-facing warnings. @default console.warn */
+  warn?: (line: string) => void;
 }
+
+const TIMEOUT_MESSAGE = "xybrid gateway timeout";
 
 /**
  * Builds a `fetch` that tries the Xybrid gateway first and falls back to the
@@ -71,6 +107,8 @@ export interface FallbackFetchOptions {
 export function createFallbackFetch(opts: FallbackFetchOptions): typeof fetch {
   const breaker = new CircuitBreaker(opts.policy.circuit);
   const tracer = opts.tracer ?? trace.getTracer("@xybrid/elixir");
+  const warn = opts.warn ?? ((line: string) => console.warn(line));
+  let warnedAuth = false;
 
   return async function xybridFetch(input, init) {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
@@ -81,6 +119,7 @@ export function createFallbackFetch(opts: FallbackFetchOptions): typeof fetch {
       if (model) span.setAttribute("gen_ai.request.model", model);
 
       const goDirect = breaker.isOpen(Date.now());
+      let reason: FallbackReason = "circuit_open";
       try {
         if (!goDirect) {
           try {
@@ -90,14 +129,24 @@ export function createFallbackFetch(opts: FallbackFetchOptions): typeof fetch {
               withGatewayHeaders(init, opts, span),
               opts.policy.timeoutMs,
             );
-            if (!opts.policy.retryStatuses.includes(res.status)) {
-              breaker.recordSuccess();
+            const failure = gatewayFailure(res, opts.policy);
+            if (!failure) {
               finish(span, res.status, { routed: true, fallback: false, circuitOpen: false });
               return res;
             }
-            breaker.recordFailure(Date.now()); // retryable status → fall through
-          } catch {
-            breaker.recordFailure(Date.now()); // timeout / connection error → fall through
+            if (failure === "gateway_auth" && !warnedAuth) {
+              warnedAuth = true;
+              warn(
+                `elixir: the Xybrid gateway rejected this API key (${res.status}); ` +
+                  `falling back to ${opts.upstreamPrefix}. Calls still work, but they are ` +
+                  `no longer being metered — check XYBRID_API_KEY.`,
+              );
+            }
+            reason = failure;
+            breaker.recordFailure(Date.now());
+          } catch (err) {
+            reason = isTimeout(err) ? "timeout" : "transport";
+            breaker.recordFailure(Date.now());
           }
         }
 
@@ -106,7 +155,12 @@ export function createFallbackFetch(opts: FallbackFetchOptions): typeof fetch {
           ? opts.upstreamPrefix + url.slice(opts.gatewayPrefix.length)
           : url;
         const res = await opts.fetchImpl(directUrl, init);
-        finish(span, res.status, { routed: !goDirect, fallback: true, circuitOpen: goDirect });
+        finish(span, res.status, {
+          routed: !goDirect,
+          fallback: true,
+          circuitOpen: goDirect,
+          reason,
+        });
         return res;
       } catch (err) {
         span.recordException(err as Error);
@@ -118,15 +172,24 @@ export function createFallbackFetch(opts: FallbackFetchOptions): typeof fetch {
   };
 }
 
+/** Whether an error came from our own gateway-attempt timeout. */
+function isTimeout(err: unknown): boolean {
+  return (
+    (err instanceof Error && err.message === TIMEOUT_MESSAGE) ||
+    (err instanceof DOMException && err.name === "TimeoutError")
+  );
+}
+
 function finish(
   span: ReturnType<Tracer["startSpan"]>,
   status: number,
-  flags: { routed: boolean; fallback: boolean; circuitOpen: boolean },
+  flags: { routed: boolean; fallback: boolean; circuitOpen: boolean; reason?: FallbackReason },
 ): void {
   span.setAttribute("http.response.status_code", status);
   span.setAttribute("xybrid.routed", flags.routed);
   span.setAttribute("xybrid.fallback", flags.fallback);
   span.setAttribute("xybrid.circuit_open", flags.circuitOpen);
+  if (flags.reason) span.setAttribute("xybrid.fallback_reason", flags.reason);
   span.end();
 }
 
@@ -177,7 +240,7 @@ async function fetchWithTimeout(
   timeoutMs: number,
 ): Promise<Response> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(new Error("xybrid gateway timeout")), timeoutMs);
+  const timer = setTimeout(() => controller.abort(new Error(TIMEOUT_MESSAGE)), timeoutMs);
   try {
     return await fetchImpl(url, { ...init, signal: controller.signal });
   } finally {

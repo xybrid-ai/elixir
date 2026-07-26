@@ -1,6 +1,12 @@
-import { BasicTracerProvider } from "@opentelemetry/sdk-trace-base";
+import { trace } from "@opentelemetry/api";
+import {
+  BasicTracerProvider,
+  InMemorySpanExporter,
+  SimpleSpanProcessor,
+} from "@opentelemetry/sdk-trace-base";
 import { describe, expect, it, vi } from "vitest";
 
+import { isBrewed } from "./brewers.ts";
 import { createFallbackFetch, resolveFallback, traceparentFrom } from "./gateway.ts";
 import { init } from "./init.ts";
 
@@ -80,6 +86,70 @@ describe("brew — gateway routing + fallback (spike)", () => {
   it("throws when no brewer handles the client", () => {
     const sdk = init({ apiKey: "xyb_test" });
     expect(() => sdk.brew({ notAClient: true })).toThrow(/no brewer registered/);
+  });
+});
+
+describe("brew — idempotency", () => {
+  // Regression: `route()` read the *live* baseURL and wrapped the *live* fetch,
+  // so a second brew (module reload, a brew on a per-request path) stacked a
+  // second gateway transport on top of the first — two correlation spans per
+  // request, and an upstreamPrefix pointing at the gateway, not the provider.
+  it("is a no-op on an already-brewed client", () => {
+    const { fetchImpl } = mockTransport(200);
+    const sdk = init({ apiKey: "xyb_test", gateway: "https://gateway.xybrid.ai" });
+    const client = fakeOpenAI(fetchImpl);
+
+    sdk.brew(client);
+    const afterFirst = { baseURL: client.baseURL, fetch: client.fetch };
+    sdk.brew(client);
+
+    expect(client.baseURL).toBe(afterFirst.baseURL);
+    expect(client.fetch).toBe(afterFirst.fetch); // transport not re-wrapped
+    expect(isBrewed(client)).toBe(true);
+  });
+
+  it("emits exactly one correlation span per request after a double brew", async () => {
+    const memory = new InMemorySpanExporter();
+    const provider = new BasicTracerProvider({
+      spanProcessors: [new SimpleSpanProcessor(memory)],
+    });
+    trace.setGlobalTracerProvider(provider);
+    try {
+      const { fetchImpl } = mockTransport(200);
+      const sdk = init({ apiKey: "xyb_test", gateway: "https://gateway.xybrid.ai" });
+      const client = fakeOpenAI(fetchImpl);
+      sdk.brew(client);
+      sdk.brew(client);
+
+      await client.fetch("https://gateway.xybrid.ai/openai/v1/chat/completions", {
+        method: "POST",
+      });
+
+      expect(memory.getFinishedSpans().map((s) => s.name)).toEqual(["xybrid openai"]);
+    } finally {
+      trace.disable();
+    }
+  });
+
+  it("still falls back to the real provider after a double brew", async () => {
+    const { fetchImpl, calls } = mockTransport(503);
+    const sdk = init({ apiKey: "xyb_test", gateway: "https://gateway.xybrid.ai" });
+    const client = fakeOpenAI(fetchImpl);
+    sdk.brew(client);
+    sdk.brew(client);
+
+    await client.fetch("https://gateway.xybrid.ai/openai/v1/chat/completions", { method: "POST" });
+
+    // The second brew must not have rewritten upstream to the gateway itself.
+    expect(calls).toEqual([
+      "https://gateway.xybrid.ai/openai/v1/chat/completions",
+      "https://api.openai.com/v1/chat/completions",
+    ]);
+  });
+
+  it("does not mark a client that no brewer could route", () => {
+    expect(isBrewed({ notAClient: true })).toBe(false);
+    expect(isBrewed(null)).toBe(false);
   });
 });
 

@@ -40,8 +40,20 @@ export interface CircuitPolicy {
 export interface FallbackPolicy {
   /** Abort a gateway attempt after this long and fall back. @default 10_000 */
   timeoutMs?: number;
-  /** HTTP statuses from the gateway that trigger fallback. @default [502, 503, 504] */
+  /**
+   * Extra gateway statuses that trigger fallback, on top of `retryServerErrors`.
+   * Statuses outside this set are treated as the *provider's* own answer and
+   * returned untouched — replaying a provider 400/404 upstream would just
+   * repeat it.
+   * @default [408, 429]
+   */
   retryStatuses?: number[];
+  /**
+   * Fall back on any `>= 500` from the gateway. Covers the 5xx codes an edge
+   * proxy emits that a fixed list misses (501, 507, Cloudflare 520–530).
+   * @default true
+   */
+  retryServerErrors?: boolean;
   /** Circuit breaker so a down gateway isn't re-probed on every call. */
   circuit?: Partial<CircuitPolicy>;
 }
@@ -50,6 +62,7 @@ export interface FallbackPolicy {
 export interface ResolvedFallbackPolicy {
   timeoutMs: number;
   retryStatuses: number[];
+  retryServerErrors: boolean;
   circuit: CircuitPolicy;
 }
 

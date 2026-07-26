@@ -58,6 +58,31 @@ export const openaiBrewer: Brewer<OpenAILike> = {
   },
 };
 
+/**
+ * Marks a client whose transport has already been rerouted. `Symbol.for` (not a
+ * fresh `Symbol`) so duplicate copies of this module — dual ESM/CJS, a JSR and
+ * an npm install side by side — still recognize each other's mark.
+ */
+const BREWED = Symbol.for("xybrid.elixir.brewed");
+
+/** Whether `client` has already been routed by a {@link Brewer}. */
+export function isBrewed(client: unknown): boolean {
+  return isObject(client) && (client as Record<symbol, unknown>)[BREWED] === true;
+}
+
+/**
+ * Mark `client` as routed. Re-routing an already-brewed client would wrap the
+ * gateway fetch in itself: two correlation spans per request, and an
+ * `upstreamPrefix` pointing at the gateway instead of the provider.
+ */
+export function markBrewed(client: object): void {
+  Object.defineProperty(client, BREWED, {
+    value: true,
+    enumerable: false,
+    configurable: true,
+  });
+}
+
 // Later providers register the same way: registerBrewer(anthropicBrewer), etc.
 const registry: Brewer[] = [openaiBrewer];
 
