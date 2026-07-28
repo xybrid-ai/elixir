@@ -180,6 +180,38 @@ describe("brew — idempotency", () => {
     expect(isBrewed({ notAClient: true })).toBe(false);
     expect(isBrewed(null)).toBe(false);
   });
+
+  // `Object.seal` / `preventExtensions` leave `baseURL` and an existing `fetch`
+  // writable, so `route()` succeeds — but defining a new symbol afterwards
+  // throws. The marker used to be symbol-only, which left such a client routed
+  // yet unmarked: the throw escaped `brew()`, and a retry double-wrapped it.
+  it.each([
+    ["sealed", Object.seal],
+    ["non-extensible", Object.preventExtensions],
+  ])("marks a %s client that route() could still reroute", (_label, harden) => {
+    const { fetchImpl } = mockTransport(200);
+    const sdk = init({ apiKey: "xyb_test", gateway: "https://gateway.xybrid.ai" });
+    const client = harden(fakeOpenAI(fetchImpl));
+
+    expect(() => sdk.brew(client)).not.toThrow();
+    expect(isBrewed(client)).toBe(true);
+    expect(client.baseURL).toBe("https://gateway.xybrid.ai/openai/v1");
+
+    const routed = client.fetch;
+    sdk.brew(client);
+    expect(client.fetch).toBe(routed); // still idempotent, no second wrap
+  });
+
+  it("leaves a frozen client untouched — route() cannot reroute it at all", () => {
+    const { fetchImpl } = mockTransport(200);
+    const sdk = init({ apiKey: "xyb_test", gateway: "https://gateway.xybrid.ai" });
+    const client = Object.freeze(fakeOpenAI(fetchImpl));
+
+    expect(() => sdk.brew(client)).toThrow(TypeError);
+    // Nothing was wrapped, so nothing may claim to have been.
+    expect(client.baseURL).toBe("https://api.openai.com/v1");
+    expect(isBrewed(client)).toBe(false);
+  });
 });
 
 describe("brew — traceparent injection (Mode C join key)", () => {

@@ -65,22 +65,41 @@ export const openaiBrewer: Brewer<OpenAILike> = {
  */
 const BREWED = Symbol.for("xybrid.elixir.brewed");
 
+/**
+ * Fallback marker for clients that reject new properties. `Object.seal` /
+ * `Object.preventExtensions` leave `baseURL` and an existing `fetch` writable,
+ * so `route()` succeeds on such a client — but defining the symbol afterwards
+ * throws, which would leave it routed yet unmarked and open to a double wrap.
+ */
+const brewedFallback = new WeakSet<object>();
+
 /** Whether `client` has already been routed by a {@link Brewer}. */
 export function isBrewed(client: unknown): boolean {
-  return isObject(client) && (client as Record<symbol, unknown>)[BREWED] === true;
+  if (!isObject(client)) return false;
+  return brewedFallback.has(client) || (client as Record<symbol, unknown>)[BREWED] === true;
 }
 
 /**
  * Mark `client` as routed. Re-routing an already-brewed client would wrap the
  * gateway fetch in itself: two correlation spans per request, and an
  * `upstreamPrefix` pointing at the gateway instead of the provider.
+ *
+ * Both markers are set. The WeakSet always succeeds and never mutates the
+ * client; the symbol is what survives across duplicate copies of this module
+ * (a JSR and an npm install side by side), which hold separate WeakSets but
+ * share `Symbol.for`.
  */
 export function markBrewed(client: object): void {
-  Object.defineProperty(client, BREWED, {
-    value: true,
-    enumerable: false,
-    configurable: true,
-  });
+  brewedFallback.add(client);
+  try {
+    Object.defineProperty(client, BREWED, {
+      value: true,
+      enumerable: false,
+      configurable: true,
+    });
+  } catch {
+    /* non-extensible client — the WeakSet above already recorded it */
+  }
 }
 
 // Later providers register the same way: registerBrewer(anthropicBrewer), etc.
