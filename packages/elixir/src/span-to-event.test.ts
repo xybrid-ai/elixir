@@ -46,6 +46,20 @@ describe("isContentAttribute", () => {
     expect(isContentAttribute("gen_ai.usage.input_tokens")).toBe(false);
     expect(isContentAttribute("ai.response.finishReason")).toBe(false);
   });
+
+  // `embed`/`embedMany` telemetry was missing from the prefix list entirely, so
+  // the text being embedded shipped in the clear under `captureContent: false`.
+  it("matches Vercel AI SDK embedding input and vectors, singular and plural", () => {
+    expect(isContentAttribute("ai.value")).toBe(true);
+    expect(isContentAttribute("ai.values")).toBe(true);
+    expect(isContentAttribute("ai.values.0")).toBe(true);
+    expect(isContentAttribute("ai.embedding")).toBe(true);
+    expect(isContentAttribute("ai.embeddings")).toBe(true);
+    expect(isContentAttribute("llm.request.functions.0.parameters")).toBe(true);
+    // Neighbouring metadata must survive.
+    expect(isContentAttribute("ai.settings.maxRetries")).toBe(false);
+    expect(isContentAttribute("ai.model.id")).toBe(false);
+  });
 });
 
 describe("spanToEvent", () => {
@@ -137,6 +151,21 @@ describe("spanToEvent", () => {
     ]);
     expect(event.provider).toBe("anthropic");
     expect(event.model).toBe("claude-sonnet-5");
+  });
+
+  it("strips embedding input and vectors from an ai.embed span", () => {
+    const event = spanToEvent(
+      fakeSpan({
+        name: "ai.embed.doEmbed",
+        attributes: {
+          "gen_ai.system": "openai",
+          "ai.model.id": "text-embedding-3-small",
+          "ai.value": "the private document being embedded",
+          "ai.embedding": "[0.1,0.2]",
+        },
+      }),
+    );
+    expect(Object.keys(event.attributes).sort()).toEqual(["ai.model.id", "gen_ai.system"]);
   });
 
   it("keeps content attributes when captureContent is true", () => {
