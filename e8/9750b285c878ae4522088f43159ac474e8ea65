@@ -1,0 +1,19 @@
+.gitignore
+  s_e539564cdb4adc::t_d9ea6e879097d4 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "e89750b285c878ae4522088f43159ac474e8ea65",
+  "prompts": {},
+  "sessions": {
+    "s_e539564cdb4adc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f9e40-2526-7252-adbd-521ae1d8d022",
+        "model": "unknown"
+      },
+      "human_author": "Glenn Sonna <kenpachi.os@gmail.com>"
+    }
+  }
+}
