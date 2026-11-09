@@ -19,6 +19,8 @@ const CONTENT_ATTRIBUTE_PREFIXES = [
   "gen_ai.tool.call.result",
   "llm.prompts",
   "llm.completions",
+  // Function/tool JSON schemas — proprietary, and content by any reading.
+  "llm.request.functions",
   "traceloop.entity.input",
   "traceloop.entity.output",
   "ai.prompt",
@@ -29,6 +31,14 @@ const CONTENT_ATTRIBUTE_PREFIXES = [
   "ai.result.text",
   "ai.result.object",
   "ai.result.toolCalls",
+  // Vercel AI SDK `embed` / `embedMany`: `ai.value(s)` is the raw text being
+  // embedded, `ai.embedding(s)` the resulting vectors. Singular and plural are
+  // both listed — prefix matching is exact-or-dotted, so `ai.value` does not
+  // cover `ai.values`.
+  "ai.value",
+  "ai.values",
+  "ai.embedding",
+  "ai.embeddings",
 ];
 
 /** Whether `key` is a content-bearing span attribute (see the prefix list above). */

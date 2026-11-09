@@ -1,7 +1,18 @@
-import { BasicTracerProvider } from "@opentelemetry/sdk-trace-base";
+import { trace } from "@opentelemetry/api";
+import {
+  BasicTracerProvider,
+  InMemorySpanExporter,
+  SimpleSpanProcessor,
+} from "@opentelemetry/sdk-trace-base";
 import { describe, expect, it, vi } from "vitest";
 
-import { createFallbackFetch, resolveFallback, traceparentFrom } from "./gateway.ts";
+import { isBrewed, openaiBrewer } from "./brewers.ts";
+import {
+  createFallbackFetch,
+  resolveFallback,
+  traceparentFrom,
+  XYBRID_ERROR_HEADER,
+} from "./gateway.ts";
 import { init } from "./init.ts";
 
 /** Minimal structural stand-in for an OpenAI Node SDK client. */
@@ -18,8 +29,11 @@ function mockTransport(gatewayStatus: number) {
   const calls: string[] = [];
   const fetchImpl = vi.fn(async (url: string) => {
     calls.push(url);
-    const status = url.includes("gateway.xybrid.ai") ? gatewayStatus : 200;
-    return new Response(JSON.stringify({ ok: status === 200 }), { status });
+    const isGateway = url.includes("gateway.xybrid.ai");
+    const status = isGateway ? gatewayStatus : 200;
+    const headers =
+      isGateway && status !== 200 ? { [XYBRID_ERROR_HEADER]: "mock_gateway_error" } : undefined;
+    return new Response(JSON.stringify({ ok: status === 200 }), { status, headers });
   });
   return { fetchImpl: fetchImpl as unknown as typeof fetch, calls };
 }
@@ -83,14 +97,134 @@ describe("brew — gateway routing + fallback (spike)", () => {
   });
 });
 
+describe("brew — idempotency", () => {
+  // Regression: `route()` read the *live* baseURL and wrapped the *live* fetch,
+  // so a second brew (module reload, a brew on a per-request path) stacked a
+  // second gateway transport on top of the first — two correlation spans per
+  // request, and an upstreamPrefix pointing at the gateway, not the provider.
+  it("is a no-op on an already-brewed client", () => {
+    const { fetchImpl } = mockTransport(200);
+    const sdk = init({ apiKey: "xyb_test", gateway: "https://gateway.xybrid.ai" });
+    const client = fakeOpenAI(fetchImpl);
+
+    sdk.brew(client);
+    const afterFirst = { baseURL: client.baseURL, fetch: client.fetch };
+    sdk.brew(client);
+
+    expect(client.baseURL).toBe(afterFirst.baseURL);
+    expect(client.fetch).toBe(afterFirst.fetch); // transport not re-wrapped
+    expect(isBrewed(client)).toBe(true);
+  });
+
+  it("emits exactly one correlation span per request after a double brew", async () => {
+    const memory = new InMemorySpanExporter();
+    const provider = new BasicTracerProvider({
+      spanProcessors: [new SimpleSpanProcessor(memory)],
+    });
+    trace.setGlobalTracerProvider(provider);
+    try {
+      const { fetchImpl } = mockTransport(200);
+      const sdk = init({ apiKey: "xyb_test", gateway: "https://gateway.xybrid.ai" });
+      const client = fakeOpenAI(fetchImpl);
+      sdk.brew(client);
+      sdk.brew(client);
+
+      await client.fetch("https://gateway.xybrid.ai/openai/v1/chat/completions", {
+        method: "POST",
+      });
+
+      expect(memory.getFinishedSpans().map((s) => s.name)).toEqual(["xybrid openai"]);
+    } finally {
+      trace.disable();
+    }
+  });
+
+  it("still falls back to the real provider after a double brew", async () => {
+    const { fetchImpl, calls } = mockTransport(503);
+    const sdk = init({ apiKey: "xyb_test", gateway: "https://gateway.xybrid.ai" });
+    const client = fakeOpenAI(fetchImpl);
+    sdk.brew(client);
+    sdk.brew(client);
+
+    await client.fetch("https://gateway.xybrid.ai/openai/v1/chat/completions", { method: "POST" });
+
+    // The second brew must not have rewritten upstream to the gateway itself.
+    expect(calls).toEqual([
+      "https://gateway.xybrid.ai/openai/v1/chat/completions",
+      "https://api.openai.com/v1/chat/completions",
+    ]);
+  });
+
+  it("can enable instrumentation after an initial route-only brew", () => {
+    const originalInstrument = openaiBrewer.instrument;
+    const instrument = vi.fn();
+    openaiBrewer.instrument = instrument;
+    try {
+      const { fetchImpl } = mockTransport(200);
+      const sdk = init({ apiKey: "xyb_test", gateway: "https://gateway.xybrid.ai" });
+      const client = fakeOpenAI(fetchImpl);
+
+      sdk.brew(client, { instrument: false });
+      const routedFetch = client.fetch;
+      sdk.brew(client);
+
+      expect(client.fetch).toBe(routedFetch);
+      expect(instrument).toHaveBeenCalledOnce();
+      expect(instrument).toHaveBeenCalledWith(client);
+    } finally {
+      openaiBrewer.instrument = originalInstrument;
+    }
+  });
+
+  it("does not mark a client that no brewer could route", () => {
+    expect(isBrewed({ notAClient: true })).toBe(false);
+    expect(isBrewed(null)).toBe(false);
+  });
+
+  // `Object.seal` / `preventExtensions` leave `baseURL` and an existing `fetch`
+  // writable, so `route()` succeeds — but defining a new symbol afterwards
+  // throws. The marker used to be symbol-only, which left such a client routed
+  // yet unmarked: the throw escaped `brew()`, and a retry double-wrapped it.
+  it.each([
+    ["sealed", Object.seal],
+    ["non-extensible", Object.preventExtensions],
+  ])("marks a %s client that route() could still reroute", (_label, harden) => {
+    const { fetchImpl } = mockTransport(200);
+    const sdk = init({ apiKey: "xyb_test", gateway: "https://gateway.xybrid.ai" });
+    const client = harden(fakeOpenAI(fetchImpl));
+
+    expect(() => sdk.brew(client)).not.toThrow();
+    expect(isBrewed(client)).toBe(true);
+    expect(client.baseURL).toBe("https://gateway.xybrid.ai/openai/v1");
+
+    const routed = client.fetch;
+    sdk.brew(client);
+    expect(client.fetch).toBe(routed); // still idempotent, no second wrap
+  });
+
+  it("leaves a frozen client untouched — route() cannot reroute it at all", () => {
+    const { fetchImpl } = mockTransport(200);
+    const sdk = init({ apiKey: "xyb_test", gateway: "https://gateway.xybrid.ai" });
+    const client = Object.freeze(fakeOpenAI(fetchImpl));
+
+    expect(() => sdk.brew(client)).toThrow(TypeError);
+    // Nothing was wrapped, so nothing may claim to have been.
+    expect(client.baseURL).toBe("https://api.openai.com/v1");
+    expect(isBrewed(client)).toBe(false);
+  });
+});
+
 describe("brew — traceparent injection (Mode C join key)", () => {
   /** Mock fetch that records the headers of every attempt. */
   function headerCapturingTransport(gatewayStatus: number) {
     const attempts: Array<{ url: string; headers: Headers }> = [];
     const fetchImpl = vi.fn(async (url: string, reqInit?: RequestInit) => {
       attempts.push({ url, headers: new Headers(reqInit?.headers) });
-      const status = url.includes("gateway.xybrid.ai") ? gatewayStatus : 200;
-      return new Response("{}", { status });
+      const isGateway = url.includes("gateway.xybrid.ai");
+      const status = isGateway ? gatewayStatus : 200;
+      const headers =
+        isGateway && status !== 200 ? { [XYBRID_ERROR_HEADER]: "mock_gateway_error" } : undefined;
+      return new Response("{}", { status, headers });
     });
     return { fetchImpl: fetchImpl as unknown as typeof fetch, attempts };
   }

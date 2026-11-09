@@ -2,7 +2,7 @@ import type { Instrumentation } from "@opentelemetry/instrumentation";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 
-import { findBrewer } from "./brewers.ts";
+import { findBrewer, isBrewed, markBrewed } from "./brewers.ts";
 import { resolveFallback } from "./gateway.ts";
 import { XybridSpanProcessor } from "./processor.ts";
 import type { BrewContext, BrewOptions, Elixir, ElixirInitOptions } from "./types.ts";
@@ -63,14 +63,21 @@ export function init(options: ElixirInitOptions): Elixir {
         throw new Error(`elixir.brew: no brewer registered for ${name}`);
       }
 
-      if (brewer.supports(client)) {
-        brewer.route(client, ctx);
-      } else {
-        const message =
-          `elixir.brew: ${brewer.name} client version is not supported for routing; ` +
-          `leaving it on its original base URL (set { strict: true } to throw instead)`;
-        if (ctx.strict) throw new Error(message);
-        console.warn(message);
+      // Routing is idempotent: brewing the same client twice (module reload, a
+      // `brew` call on a per-request path) must not stack transports. Keep
+      // instrumentation eligible so a later call can enable it after an
+      // initial `{ instrument: false }` route-only brew.
+      if (!isBrewed(client)) {
+        if (brewer.supports(client)) {
+          brewer.route(client, ctx);
+          if (typeof client === "object" && client !== null) markBrewed(client);
+        } else {
+          const message =
+            `elixir.brew: ${brewer.name} client version is not supported for routing; ` +
+            `leaving it on its original base URL (set { strict: true } to throw instead)`;
+          if (ctx.strict) throw new Error(message);
+          console.warn(message);
+        }
       }
 
       if (opts?.instrument !== false) brewer.instrument?.(client);
